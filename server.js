@@ -1,7 +1,6 @@
 const express = require("express");
 const connect = require("./config/connectDB");
 const app = express();
-const router = express.Router();
 
 const User = require("./models/User");
 
