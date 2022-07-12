@@ -1,78 +1,72 @@
 const express = require("express");
 const connect = require("./config/connectDB");
-const User = require("./models/User");
 const app = express();
-const port = process.env.PORT || 5000;
+const router = express.Router();
+
+const User = require("./models/User");
+
+app.use(express.json());
+
 connect();
-app.use(express.json);
 
-const addUsers = async () => {
-  try {
-    const users = await User.create([
-      {
-        name: "ahlem",
-        age: 26,
-        email: "ahlem@gmail.com",
-      },
-      {
-        name: "habiba",
-        age: 25,
-        email: "habiba@gmail.com",
-      },
-      {
-        name: "fatma",
-        age: 25,
-        email: "fatma@gmail.com",
-      },
-      {
-        name: "youssef",
-        age: 27,
-        email: "youssef@gmail.com",
-      },
-    ]);
-    console.log(users);
-  } catch (error) {
-    console.error(error);
-  }
-};
-//addUsers();
-
+//GET :  RETURN ALL USERS
 app.get("/", async (req, res) => {
   try {
-    const allUsers = await Person.find({});
-    console.log(allUsers);
-  } catch (error) {}
+    const allUsers = await User.find({});
+    res.send({ msg: "all users :", allUsers });
+  } catch (error) {
+    res.status(400).send("failed to get");
+  }
 });
 
+//POST :  ADD A NEW USER TO THE DATABASE
 app.post("/adduser", async (req, res) => {
   try {
-    const existUser = await User.find({ name: req.body.name });
+    const existUser = await User.findOne({ name: req.body.name });
     if (existUser) {
       return res.status(400).send({ msg: "name must be unique" });
     }
     const newUser = new User({ ...req.body });
-    console.log(newUser);
-    newUser.save();
-    const allUsers = await User.find({});
-    res.send({ msg: "user added !", allUsers });
+    await newUser.save();
+    //const allUsers = await User.find({});
+    res.send({ msg: "user added !", newUser });
   } catch (error) {
-    console.log(error);
+    res.status(400).send("failed to add");
   }
 });
 
+//PUT : EDIT A USER BY ID
 app.put("/edituser/:id", async (req, res) => {
   try {
-    User.findByIdAndUpdate(req.params.id, { ...req.body });
+    const result = await User.updateOne(
+      { _id: req.params.id },
+      { $set: { ...req.body } }
+    );
+    const userUpdated = await User.findOne({ _id: req.params.id });
+
+    if (result.modifiedCount) {
+      return res.send({ msg: "user updated ", userUpdated });
+    }
+    res.status(400).send({ msg: "already updated" });
   } catch (error) {
-    console.log(error);
+    res.status(400).send("failed to edit");
   }
 });
 
+//DELETE : REMOVE A USER BY ID
 app.delete("/delete/:id", async (req, res) => {
   try {
-    User.findByIdAndRemove(req.params.id);
-  } catch (error) {}
+    const deletedUser = await User.deleteOne({ _id: req.params.id });
+    if (deletedUser.deletedCount) {
+      return res.send({ msg: "user deleted " });
+    }
+    res.status(400).send({ msg: "already deleted" });
+  } catch (error) {
+    res.status(400).send("failed to delete");
+  }
 });
+
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`you're listenning ${port}`);
 });
